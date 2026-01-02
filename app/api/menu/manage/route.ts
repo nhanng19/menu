@@ -1,9 +1,11 @@
-import db from '@/lib/db';
+import { getDatabase } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 
 export async function GET() {
   try {
-    const items = db.prepare('SELECT * FROM menu_items ORDER BY category, name').all();
+    const db = await getDatabase();
+    const items = await db.collection('menu_items').find({}).sort({ category: 1, name: 1 }).toArray();
     return NextResponse.json(items);
   } catch (error) {
     console.error('Error fetching menu items:', error);
@@ -20,13 +22,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const insert = db.prepare(
-      'INSERT INTO menu_items (name, description, category, image) VALUES (?, ?, ?, ?)'
-    );
-    const result = insert.run(name, description || null, category || null, image || null);
+    const db = await getDatabase();
+    const result = await db.collection('menu_items').insertOne({
+      name,
+      description: description || null,
+      category: category || null,
+      image: image || null,
+      created_at: new Date(),
+    });
 
     return NextResponse.json(
-      { id: result.lastInsertRowid, name, description, category, image },
+      { id: result.insertedId.toString(), name, description, category, image },
       { status: 201 }
     );
   } catch (error) {
@@ -44,10 +50,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID and name are required' }, { status: 400 });
     }
 
-    const update = db.prepare(
-      'UPDATE menu_items SET name = ?, description = ?, category = ?, image = ? WHERE id = ?'
+    const db = await getDatabase();
+    
+    await db.collection('menu_items').updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name,
+          description: description || null,
+          category: category || null,
+          image: image || null,
+          updated_at: new Date(),
+        },
+      }
     );
-    update.run(name, description || null, category || null, image || null, id);
 
     return NextResponse.json({ id, name, description, category, image });
   } catch (error) {
@@ -65,8 +81,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    const deleteStmt = db.prepare('DELETE FROM menu_items WHERE id = ?');
-    deleteStmt.run(id);
+    const db = await getDatabase();
+    
+    await db.collection('menu_items').deleteOne({ _id: new ObjectId(id) });
 
     return NextResponse.json({ success: true });
   } catch (error) {

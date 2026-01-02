@@ -1,12 +1,13 @@
-import db from './db';
+import { getDatabase } from './mongodb';
+import { ObjectId } from 'mongodb';
 
 export interface Order {
-  id: number;
+  _id?: ObjectId;
   table_id: number;
   items: string; // JSON string of items
   status: 'pending' | 'completed';
-  created_at: string;
-  completed_at: string | null;
+  created_at: Date;
+  completed_at: Date | null;
 }
 
 export interface OrderItem {
@@ -16,47 +17,59 @@ export interface OrderItem {
 }
 
 // Create a new order
-export function createOrder(tableId: number, items: OrderItem[]): number {
+export async function createOrder(tableId: number, items: OrderItem[]): Promise<ObjectId> {
+  const db = await getDatabase();
   const itemsJson = JSON.stringify(items);
-  const result = db.prepare('INSERT INTO orders (table_id, items) VALUES (?, ?)').run(tableId, itemsJson);
-  return result.lastInsertRowid as number;
+  const result = await db.collection('orders').insertOne({
+    table_id: tableId,
+    items: itemsJson,
+    status: 'pending',
+    created_at: new Date(),
+    completed_at: null,
+  });
+  return result.insertedId;
 }
 
 // Get all pending orders
-export function getPendingOrders(): Order[] {
-  return db.prepare('SELECT * FROM orders WHERE status = ? ORDER BY created_at ASC').all('pending') as Order[];
+export async function getPendingOrders(): Promise<Order[]> {
+  const db = await getDatabase();
+  return await db.collection('orders').find({ status: 'pending' }).sort({ created_at: 1 }).toArray() as Order[];
 }
 
 // Get all orders (for kitchen view)
-export function getAllOrders(): Order[] {
-  return db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all() as Order[];
+export async function getAllOrders(): Promise<Order[]> {
+  const db = await getDatabase();
+  return await db.collection('orders').find({}).sort({ created_at: -1 }).toArray() as Order[];
 }
 
 // Mark order as completed
-export function completeOrder(orderId: number): void {
-  db.prepare('UPDATE orders SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run('completed', orderId);
+export async function completeOrder(orderId: ObjectId | string): Promise<void> {
+  const db = await getDatabase();
+  const id = typeof orderId === 'string' ? new ObjectId(orderId) : orderId;
+  await db.collection('orders').updateOne(
+    { _id: id },
+    { $set: { status: 'completed', completed_at: new Date() } }
+  );
 }
 
 // Get last order time for a table (returns minutes since last order)
-export function getMinutesSinceLastOrder(tableId: number): number | null {
-  // Use SQLite's datetime functions to calculate the difference in minutes
-  // This avoids timezone issues by doing the calculation in the database
-  const result = db.prepare(`
-    SELECT 
-      (julianday('now') - julianday(created_at)) * 24 * 60 as minutes_diff
-    FROM orders 
-    WHERE table_id = ? 
-    ORDER BY created_at DESC 
-    LIMIT 1
-  `).get(tableId) as { minutes_diff: number } | undefined;
+export async function getMinutesSinceLastOrder(tableId: number): Promise<number | null> {
+  const db = await getDatabase();
+  const result = await db.collection('orders').findOne(
+    { table_id: tableId },
+    { sort: { created_at: -1 } }
+  ) as Order | null;
   
   if (!result) return null;
-  return result.minutes_diff;
+  
+  const now = new Date();
+  const minutesDiff = (now.getTime() - result.created_at.getTime()) / (1000 * 60);
+  return minutesDiff;
 }
 
 // Check if table can order (10 minute cooldown)
-export function canTableOrder(tableId: number): boolean {
-  const minutesSince = getMinutesSinceLastOrder(tableId);
+export async function canTableOrder(tableId: number): Promise<boolean> {
+  const minutesSince = await getMinutesSinceLastOrder(tableId);
   if (minutesSince === null) return true;
   
   // If negative, it means the order is in the future (shouldn't happen, but handle it)
@@ -69,8 +82,8 @@ export function canTableOrder(tableId: number): boolean {
 }
 
 // Get remaining cooldown time in minutes
-export function getRemainingCooldown(tableId: number): number {
-  const minutesSince = getMinutesSinceLastOrder(tableId);
+export async function getRemainingCooldown(tableId: number): Promise<number> {
+  const minutesSince = await getMinutesSinceLastOrder(tableId);
   if (minutesSince === null) return 0;
   
   // If negative, return 0 (shouldn't happen)
@@ -84,14 +97,20 @@ export function getRemainingCooldown(tableId: number): number {
 }
 
 // Keep this for backward compatibility if needed elsewhere
-export function getLastOrderTime(tableId: number): Date | null {
-  const result = db.prepare('SELECT created_at FROM orders WHERE table_id = ? ORDER BY created_at DESC LIMIT 1').get(tableId) as { created_at: string } | undefined;
+export async function getLastOrderTime(tableId: number): Promise<Date | null> {
+  const db = await getDatabase();
+  const result = await db.collection('orders').findOne(
+    { table_id: tableId },
+    { sort: { created_at: -1 } }
+  ) as Order | null;
+  
   if (!result) return null;
-  return new Date(result.created_at);
+  return result.created_at;
 }
 
 // Get order history for a specific table
-export function getTableOrderHistory(tableId: number): Order[] {
-  return db.prepare('SELECT * FROM orders WHERE table_id = ? ORDER BY created_at DESC').all(tableId) as Order[];
+export async function getTableOrderHistory(tableId: number): Promise<Order[]> {
+  const db = await getDatabase();
+  return await db.collection('orders').find({ table_id: tableId }).sort({ created_at: -1 }).toArray() as Order[];
 }
 

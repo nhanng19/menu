@@ -11,8 +11,8 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid table ID' }, { status: 400 })
     }
 
-    const canOrder = canTableOrder(tableId)
-    const cooldownMinutes = canOrder ? 0 : getRemainingCooldown(tableId)
+    const canOrder = await canTableOrder(tableId)
+    const cooldownMinutes = canOrder ? 0 : await getRemainingCooldown(tableId)
 
     return NextResponse.json({ canOrder, cooldownMinutes })
   } catch (error) {

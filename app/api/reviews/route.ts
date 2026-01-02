@@ -1,8 +1,9 @@
-import db from '@/lib/db';
+import { getDatabase } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    const db = await getDatabase();
     const body = await request.json();
     const { customer_name, server_name, rating, comment, table_id } = body;
 
@@ -20,25 +21,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const insert = db.prepare(
-      'INSERT INTO reviews (customer_name, server_name, rating, comment, table_id) VALUES (?, ?, ?, ?, ?)'
-    );
-    const result = insert.run(
+    const result = await db.collection('reviews').insertOne({
       customer_name,
       server_name,
       rating,
-      comment || null,
-      table_id || null
-    );
+      comment: comment || null,
+      table_id: table_id || null,
+      created_at: new Date(),
+    });
 
     return NextResponse.json(
       {
-        id: result.lastInsertRowid,
+        id: result.insertedId,
         customer_name,
         server_name,
         rating,
         comment,
         table_id,
+        created_at: new Date(),
       },
       { status: 201 }
     );
@@ -50,12 +50,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const db = await getDatabase();
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get('limit') || '10';
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    const reviews = db
-      .prepare('SELECT * FROM reviews ORDER BY created_at DESC LIMIT ?')
-      .all(parseInt(limit));
+    const reviews = await db
+      .collection('reviews')
+      .find({})
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .toArray();
 
     return NextResponse.json(reviews);
   } catch (error) {

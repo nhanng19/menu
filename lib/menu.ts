@@ -1,7 +1,9 @@
-import db from './db';
+import { getDatabase } from './mongodb';
+import { ObjectId } from 'mongodb';
 
 export interface MenuItem {
-  id: number;
+  _id?: ObjectId;
+  id?: number;
   name: string;
   description?: string;
   price?: number;
@@ -26,13 +28,12 @@ const menuItemImages: Record<string, string> = {
 };
 
 // Initialize menu items if database is empty
-export function initializeMenu() {
-  const count = db.prepare('SELECT COUNT(*) as count FROM menu_items').get() as { count: number };
+export async function initializeMenu() {
+  const db = await getDatabase();
+  const count = await db.collection('menu_items').countDocuments();
   
-  if (count.count === 0) {
-    const insert = db.prepare('INSERT INTO menu_items (name, description, price, category, image) VALUES (?, ?, ?, ?, ?)');
-    
-    const defaultMenu: Omit<MenuItem, 'id'>[] = [
+  if (count === 0) {
+    const defaultMenu: MenuItem[] = [
       { name: 'Bulgogi', description: 'Marinated beef', category: 'Meat', image: menuItemImages['Bulgogi'] },
       { name: 'Galbi', description: 'Short ribs', category: 'Meat', image: menuItemImages['Galbi'] },
       { name: 'Samgyeopsal', description: 'Pork belly', category: 'Meat', image: menuItemImages['Samgyeopsal'] },
@@ -47,34 +48,32 @@ export function initializeMenu() {
       { name: 'Japchae', description: 'Glass noodles', category: 'Side', image: menuItemImages['Japchae'] },
     ];
 
-    const insertMany = db.transaction((items: Omit<MenuItem, 'id'>[]) => {
-      for (const item of items) {
-        insert.run(item.name, item.description, null, item.category, item.image || null);
-      }
-    });
-
-    insertMany(defaultMenu);
+    await db.collection('menu_items').insertMany(defaultMenu);
   } else {
     // Update existing menu items with images if they don't have one
-    const updateImage = db.prepare('UPDATE menu_items SET image = ? WHERE id = ?');
-    const items = db.prepare('SELECT id, name, image FROM menu_items').all() as { id: number; name: string; image: string | null }[];
+    const items = await db.collection('menu_items').find({}).toArray() as MenuItem[];
     
     for (const item of items) {
       // Only update if image is missing or empty
       if (menuItemImages[item.name] && (!item.image || item.image.trim() === '')) {
-        updateImage.run(menuItemImages[item.name], item.id);
+        await db.collection('menu_items').updateOne(
+          { _id: item._id },
+          { $set: { image: menuItemImages[item.name] } }
+        );
       }
     }
   }
 }
 
 // Get all menu items
-export function getMenuItems(): MenuItem[] {
-  return db.prepare('SELECT * FROM menu_items ORDER BY category, name').all() as MenuItem[];
+export async function getMenuItems(): Promise<MenuItem[]> {
+  const db = await getDatabase();
+  return await db.collection('menu_items').find({}).sort({ category: 1, name: 1 }).toArray() as MenuItem[];
 }
 
 // Get menu item by ID
-export function getMenuItem(id: number): MenuItem | null {
-  return db.prepare('SELECT * FROM menu_items WHERE id = ?').get(id) as MenuItem | null;
+export async function getMenuItem(id: string): Promise<MenuItem | null> {
+  const db = await getDatabase();
+  return await db.collection('menu_items').findOne({ _id: new ObjectId(id) }) as MenuItem | null;
 }
 

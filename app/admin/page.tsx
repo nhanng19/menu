@@ -41,7 +41,17 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    fetchItems();
+    // Initialize menu data in MongoDB on first load
+    const initializeApp = async () => {
+      try {
+        await fetch('/api/init', { method: 'POST' })
+      } catch (error) {
+        console.warn('Could not initialize menu:', error)
+      }
+      fetchItems()
+    }
+
+    initializeApp();
   }, []);
 
   const fetchItems = async () => {
@@ -174,63 +184,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleClearOrders = async () => {
-    if (!window.confirm('Are you sure you want to delete ALL orders? This action cannot be undone.')) {
-      return;
-    }
-
-    setIsClearing('orders');
-    try {
-      const res = await fetch('/api/admin/clear-orders', {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to clear orders');
-
-      toast({
-        title: 'Success',
-        description: 'All orders have been deleted',
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to clear orders',
-      });
-    } finally {
-      setIsClearing(null);
-    }
-  };
-
-  const handleClearReviews = async () => {
-    if (!window.confirm('Are you sure you want to delete ALL reviews? This action cannot be undone.')) {
-      return;
-    }
-
-    setIsClearing('reviews');
-    try {
-      const res = await fetch('/api/admin/clear-reviews', {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to clear reviews');
-
-      toast({
-        title: 'Success',
-        description: 'All reviews have been deleted',
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to clear reviews',
-      });
-    } finally {
-      setIsClearing(null);
-    }
-  };
-
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -258,33 +211,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Clear Data Section */}
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-lg text-red-900">Danger Zone</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-800 mb-4">
-              Use these options to permanently delete data. This action cannot be undone.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                variant="destructive"
-                onClick={handleClearOrders}
-                disabled={isClearing === 'orders'}
-              >
-                {isClearing === 'orders' ? 'Clearing Orders...' : 'Clear All Orders'}
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleClearReviews}
-                disabled={isClearing === 'reviews'}
-              >
-                {isClearing === 'reviews' ? 'Clearing Reviews...' : 'Clear All Reviews'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (

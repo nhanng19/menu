@@ -1,11 +1,11 @@
-import db from '@/lib/db';
+import { getDatabase } from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
 
 export async function DELETE() {
   try {
+    const db = await getDatabase();
     // Clear all reviews from the database
-    const deleteStmt = db.prepare('DELETE FROM reviews');
-    deleteStmt.run();
+    await db.collection('reviews').deleteMany({});
 
     return NextResponse.json({ success: true, message: 'All reviews have been deleted' });
   } catch (error) {

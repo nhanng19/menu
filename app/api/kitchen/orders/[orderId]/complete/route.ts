@@ -6,12 +6,12 @@ export async function POST(
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const orderId = parseInt(params.orderId)
-    if (isNaN(orderId)) {
+    const orderId = params.orderId
+    if (!orderId) {
       return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 })
     }
 
-    completeOrder(orderId)
+    await completeOrder(orderId)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error completing order:', error)

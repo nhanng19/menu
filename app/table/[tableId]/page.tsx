@@ -65,10 +65,32 @@ export default function TablePage() {
   const SERVER_NAMES = ['Linh', 'Nhan', 'Ben', 'Tin', 'Samantha', 'Brandon']
 
   useEffect(() => {
-    fetch('/api/menu')
-      .then(res => res.json())
-      .then(data => setMenuItems(data))
+    // Initialize menu data in MongoDB on first load
+    const initializeApp = async () => {
+      try {
+        await fetch('/api/init', { method: 'POST' })
+      } catch (error) {
+        console.warn('Could not initialize menu:', error)
+      }
 
+      // Then fetch the menu items
+      try {
+        const res = await fetch('/api/menu')
+        const data = await res.json()
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setMenuItems(data)
+        } else {
+          console.error('Menu data is not an array:', data)
+          setMenuItems([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch menu:', error)
+        setMenuItems([])
+      }
+    }
+
+    initializeApp()
     checkOrderStatus()
     const interval = setInterval(checkOrderStatus, 1000)
     return () => clearInterval(interval)
@@ -235,13 +257,15 @@ export default function TablePage() {
   }
 
   const totalItems = cart.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0)
-  const groupedMenu = menuItems.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
-    if (!acc[item.category || 'Other']) {
-      acc[item.category || 'Other'] = []
-    }
-    acc[item.category || 'Other'].push(item)
-    return acc
-  }, {} as Record<string, MenuItem[]>)
+  const groupedMenu = Array.isArray(menuItems) 
+    ? menuItems.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
+        if (!acc[item.category || 'Other']) {
+          acc[item.category || 'Other'] = []
+        }
+        acc[item.category || 'Other'].push(item)
+        return acc
+      }, {})
+    : {}
 
   // Get categories for tabs - filter menu based on selected category
   const filteredMenu = activeCategory === 'all' 

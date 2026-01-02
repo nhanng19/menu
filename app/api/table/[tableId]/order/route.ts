@@ -12,7 +12,7 @@ export async function POST(
     }
 
     // Check if table can order
-    if (!canTableOrder(tableId)) {
+    if (!(await canTableOrder(tableId))) {
       return NextResponse.json(
         { error: 'Please wait 10 minutes before placing another order' },
         { status: 429 }
@@ -37,7 +37,7 @@ export async function POST(
       }
     }
 
-    const orderId = createOrder(tableId, items)
+    const orderId = await createOrder(tableId, items)
     return NextResponse.json({ success: true, orderId })
   } catch (error) {
     console.error('Error creating order:', error)
