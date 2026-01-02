@@ -11,7 +11,7 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: number;
+  id: string | number;
   name: string;
   quantity: number;
 }
@@ -45,7 +45,18 @@ export async function getAllOrders(): Promise<Order[]> {
 // Mark order as completed
 export async function completeOrder(orderId: ObjectId | string): Promise<void> {
   const db = await getDatabase();
-  const id = typeof orderId === 'string' ? new ObjectId(orderId) : orderId;
+  
+  if (!orderId) {
+    throw new Error('Order ID is required');
+  }
+  
+  let id: ObjectId;
+  try {
+    id = typeof orderId === 'string' ? new ObjectId(orderId) : orderId;
+  } catch (error) {
+    throw new Error(`Invalid order ID format: ${orderId}`);
+  }
+  
   await db.collection('orders').updateOne(
     { _id: id },
     { $set: { status: 'completed', completed_at: new Date() } }

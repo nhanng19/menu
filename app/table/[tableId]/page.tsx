@@ -12,10 +12,10 @@ import { CheckCircle2, Clock, Plus, Minus, ShoppingCart, X, Star } from 'lucide-
 import { useToast } from '@/components/ui/use-toast'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select } from '@/components/ui/select'
+import { getTableIdFromCode } from '@/lib/tableMapping'
 
 interface MenuItem {
-  id: number
+  id: string | number
   name: string
   description?: string
   price?: number
@@ -24,7 +24,7 @@ interface MenuItem {
 }
 
 interface OrderItem {
-  id: number
+  id: string | number
   name: string
   quantity: number
   image?: string
@@ -41,7 +41,24 @@ interface OrderHistory {
 
 export default function TablePage() {
   const params = useParams()
-  const tableId = parseInt(params.tableId as string)
+  const tableParam = params.tableId as string
+  
+  // Only accept valid UUID codes - no numeric IDs allowed
+  const tableId = getTableIdFromCode(tableParam)
+  
+  // If code is invalid, show error
+  if (tableId === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-2">Invalid Table Code</h1>
+          <p className="text-muted-foreground">The table code you provided is invalid.</p>
+          <p className="text-sm text-muted-foreground mt-2">Please scan a valid QR code to access your table.</p>
+        </div>
+      </div>
+    )
+  }
+
   const { toast } = useToast()
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -91,9 +108,15 @@ export default function TablePage() {
     }
 
     initializeApp()
+    
+    // Check order status on page load
     checkOrderStatus()
-    const interval = setInterval(checkOrderStatus, 1000)
-    return () => clearInterval(interval)
+  }, [tableId])
+
+  // Poll for cooldown status every 10 seconds
+  useEffect(() => {
+    const pollInterval = setInterval(checkOrderStatus, 10000)
+    return () => clearInterval(pollInterval)
   }, [tableId])
 
   useEffect(() => {
@@ -138,11 +161,11 @@ export default function TablePage() {
     }
   }
 
-  const removeFromCart = (itemId: number) => {
+  const removeFromCart = (itemId: string | number) => {
     setCart(cart.filter((c: OrderItem) => c.id !== itemId))
   }
 
-  const updateQuantity = (itemId: number, quantity: number) => {
+  const updateQuantity = (itemId: string | number, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId)
     } else {

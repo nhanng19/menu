@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
 
 interface MenuItem {
-  id: number;
+  id: string | number;
   name: string;
   description?: string;
   category?: string;
@@ -27,7 +27,7 @@ interface FormData {
 export default function AdminPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState<'orders' | 'reviews' | null>(null);
@@ -162,7 +162,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteItem = async (id: number) => {
+  const handleDeleteItem = async (id: string | number) => {
     try {
       const res = await fetch(`/api/menu/manage?id=${id}`, {
         method: 'DELETE',
@@ -198,6 +198,11 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Menu Management</h1>
           <div className="flex gap-2">
+            <Link href="/admin/qr-codes">
+              <Button variant="outline" className="gap-2">
+                📱 QR Codes
+              </Button>
+            </Link>
             <Link href="/admin/reviews">
               <Button variant="outline" className="gap-2">
                 <Star className="h-4 w-4" />

@@ -2,8 +2,14 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChefHat } from 'lucide-react'
+import { getAllTableCodes } from '@/lib/tableMapping'
 
 export default function Home() {
+  const tableCodes = getAllTableCodes()
+  const tableNumbers = Object.keys(tableCodes)
+    .map((key) => parseInt(key))
+    .sort((a, b) => a - b)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
@@ -15,12 +21,12 @@ export default function Home() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground text-center">Quick Links:</p>
+            <p className="text-sm text-muted-foreground text-center">Quick Links (for testing):</p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {[1, 2, 3, 4].map((table) => (
-                <Button key={table} asChild>
-                  <Link href={`/table/${table}`}>
-                    Table {table}
+              {tableNumbers.map((tableId) => (
+                <Button key={tableId} asChild>
+                  <Link href={`/table/${tableCodes[tableId]}`}>
+                    Table {tableId}
                   </Link>
                 </Button>
               ))}

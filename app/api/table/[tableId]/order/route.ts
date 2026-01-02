@@ -32,12 +32,20 @@ export async function POST(
 
     // Validate items structure
     for (const item of items) {
-      if (!item.id || !item.name || !item.quantity || item.quantity <= 0) {
+      if (!item.id || !item.name || item.quantity === undefined || item.quantity <= 0) {
+        console.error('Invalid item format:', item)
         return NextResponse.json({ error: 'Invalid item format' }, { status: 400 })
       }
     }
 
-    const orderId = await createOrder(tableId, items)
+    // Normalize items to ensure id is a string
+    const normalizedItems = items.map((item: any) => ({
+      id: String(item.id),
+      name: item.name,
+      quantity: parseInt(item.quantity) || item.quantity,
+    }))
+
+    const orderId = await createOrder(tableId, normalizedItems)
     return NextResponse.json({ success: true, orderId })
   } catch (error) {
     console.error('Error creating order:', error)

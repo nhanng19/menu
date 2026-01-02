@@ -14,7 +14,7 @@ interface OrderItem {
 }
 
 interface Order {
-  id: number
+  id: string | number
   table_id: number
   items: string
   status: 'pending' | 'completed'
@@ -43,7 +43,7 @@ export default function KitchenPage() {
     }
   }
 
-  const completeOrder = async (orderId: number) => {
+  const completeOrder = async (orderId: string | number) => {
     try {
       const res = await fetch(`/api/kitchen/orders/${orderId}/complete`, {
         method: 'POST',

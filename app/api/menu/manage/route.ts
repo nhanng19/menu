@@ -6,7 +6,18 @@ export async function GET() {
   try {
     const db = await getDatabase();
     const items = await db.collection('menu_items').find({}).sort({ category: 1, name: 1 }).toArray();
-    return NextResponse.json(items);
+    
+    // Transform MongoDB _id to id for consistency with frontend
+    const transformedItems = items.map((item: any) => ({
+      id: item._id?.toString() || item.id,
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      image: item.image,
+      created_at: item.created_at,
+    }));
+    
+    return NextResponse.json(transformedItems);
   } catch (error) {
     console.error('Error fetching menu items:', error);
     return NextResponse.json({ error: 'Failed to fetch menu items' }, { status: 500 });
@@ -52,8 +63,15 @@ export async function PUT(request: NextRequest) {
 
     const db = await getDatabase();
     
-    await db.collection('menu_items').updateOne(
-      { _id: new ObjectId(id) },
+    let objectId: ObjectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (error) {
+      return NextResponse.json({ error: `Invalid menu item ID format: ${id}` }, { status: 400 });
+    }
+    
+    const result = await db.collection('menu_items').updateOne(
+      { _id: objectId },
       {
         $set: {
           name,
@@ -64,6 +82,10 @@ export async function PUT(request: NextRequest) {
         },
       }
     );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ id, name, description, category, image });
   } catch (error) {
@@ -83,7 +105,18 @@ export async function DELETE(request: NextRequest) {
 
     const db = await getDatabase();
     
-    await db.collection('menu_items').deleteOne({ _id: new ObjectId(id) });
+    let objectId: ObjectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (error) {
+      return NextResponse.json({ error: `Invalid menu item ID format: ${id}` }, { status: 400 });
+    }
+    
+    const result = await db.collection('menu_items').deleteOne({ _id: objectId });
+    
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
