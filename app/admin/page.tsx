@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, Plus, Edit2, Trash2, Star } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
@@ -31,6 +32,7 @@ export default function AdminPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState<'orders' | 'reviews' | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<FormData>({
@@ -216,68 +218,97 @@ export default function AdminPage() {
           </div>
         </div>
 
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <Card key={item.id} className="flex flex-col overflow-hidden">
-              {item.image && (
-                <div className="w-full h-40 overflow-hidden bg-muted">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <CardContent className="flex-1 p-4">
-                <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
-                {item.category && (
-                  <p className="text-xs font-medium text-primary mb-2">
-                    {item.category}
-                  </p>
-                )}
-                {item.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                )}
-              </CardContent>
-              <div className="flex gap-2 p-4 border-t">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={() => openEditSheet(item)}
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="flex-1 gap-2"
-                  onClick={() => handleDeleteItem(item.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
-            </Card>
-          ))}
+        {/* Category Tabs */}
+        <div className="mb-4">
+          <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+            <TabsList className="w-full grid grid-cols-5 h-auto p-1">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+              <TabsTrigger value="Meat" className="text-xs sm:text-sm">Meat</TabsTrigger>
+              <TabsTrigger value="Seafood" className="text-xs sm:text-sm">Seafood</TabsTrigger>
+              <TabsTrigger value="Side" className="text-xs sm:text-sm">Sides</TabsTrigger>
+              <TabsTrigger value="Drinks" className="text-xs sm:text-sm">Drinks</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        {items.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground mb-4">No menu items yet</p>
-              <Button onClick={openAddSheet} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add First Item
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Menu Items Grid */}
+        {(() => {
+          // Group items by category
+          const groupedItems = items.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
+            const category = item.category || 'Other'
+            if (!acc[category]) {
+              acc[category] = []
+            }
+            acc[category].push(item)
+            return acc
+          }, {})
+
+          // Filter by selected category
+          const filteredItems = activeCategory === 'all'
+            ? items
+            : (groupedItems[activeCategory] || [])
+
+          return filteredItems.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">No menu items in this category</p>
+                <Button onClick={openAddSheet} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Item
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredItems.map((item) => (
+                <Card key={item.id} className="flex flex-col overflow-hidden">
+                  {item.image && (
+                    <div className="w-full h-40 overflow-hidden bg-muted">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <CardContent className="flex-1 p-4">
+                    <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                    {item.category && (
+                      <p className="text-xs font-medium text-primary mb-2">
+                        {item.category}
+                      </p>
+                    )}
+                    {item.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
+                    )}
+                  </CardContent>
+                  <div className="flex gap-2 p-4 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={() => openEditSheet(item)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1 gap-2"
+                      onClick={() => handleDeleteItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Edit/Add Sheet */}

@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getMenuItems, initializeMenu } from '@/lib/menu'
+import { getDatabase } from '@/lib/mongodb'
+import { initializeMenu } from '@/lib/menu'
 
 export async function GET() {
   try {
     await initializeMenu() // Ensure menu is initialized
-    const items = await getMenuItems()
     
-    // Ensure we always return an array
-    if (!Array.isArray(items)) {
-      console.error('getMenuItems did not return an array:', items)
-      return NextResponse.json([], { status: 200 })
-    }
+    const db = await getDatabase()
+    const items = await db.collection('menu_items').find({}).sort({ category: 1, name: 1 }).toArray()
     
     // Transform MongoDB _id to id for consistency with frontend
     const transformedItems = items.map((item: any) => ({
