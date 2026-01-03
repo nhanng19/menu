@@ -43,18 +43,8 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    // Initialize menu data in MongoDB on first load
-    const initializeApp = async () => {
-      try {
-        await fetch('/api/init', { method: 'POST' })
-      } catch (error) {
-        console.warn('Could not initialize menu:', error)
-      }
-      fetchItems()
-    }
-
-    initializeApp();
-  }, []);
+    fetchItems()
+  }, [])
 
   const fetchItems = async () => {
     try {

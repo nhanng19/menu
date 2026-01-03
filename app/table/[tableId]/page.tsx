@@ -79,18 +79,11 @@ export default function TablePage() {
     comment: '',
   })
 
-  const SERVER_NAMES = ['Linh', 'Nhan', 'Ben', 'Tin', 'Samantha', 'Brandon']
+  const SERVER_NAMES = ['Linh', 'Nhan', 'Ben', 'Tin', 'Samantha', 'Brandon', 'Corey']
 
   useEffect(() => {
-    // Initialize menu data in MongoDB on first load
-    const initializeApp = async () => {
-      try {
-        await fetch('/api/init', { method: 'POST' })
-      } catch (error) {
-        console.warn('Could not initialize menu:', error)
-      }
-
-      // Then fetch the menu items
+    // Fetch menu items
+    const fetchMenu = async () => {
       try {
         const res = await fetch('/api/menu')
         const data = await res.json()
@@ -107,7 +100,7 @@ export default function TablePage() {
       }
     }
 
-    initializeApp()
+    fetchMenu()
     
     // Check order status on page load
     checkOrderStatus()

@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/mongodb'
-import { initializeMenu } from '@/lib/menu'
 
 export async function GET() {
   try {
-    await initializeMenu() // Ensure menu is initialized
-    
     const db = await getDatabase()
     const items = await db.collection('menu_items').find({}).sort({ category: 1, name: 1 }).toArray()
     
