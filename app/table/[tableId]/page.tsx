@@ -546,7 +546,7 @@ export default function TablePage() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle className="text-base">Order #{order.id}</CardTitle>
+                          <CardTitle className="text-base">Order #{String(order.id).slice(-4)}</CardTitle>
                           <CardDescription className="text-xs mt-1">
                             {orderDate.toLocaleDateString()} at {orderDate.toLocaleTimeString('en-US', { 
                               hour: '2-digit', 
