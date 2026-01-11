@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getAllOrders } from '@/lib/orders'
 
+export const revalidate = 0; // Disable caching - always fetch fresh data
+
 export async function GET() {
   try {
     const orders = await getAllOrders()
@@ -15,7 +17,12 @@ export async function GET() {
       completed_at: order.completed_at,
     }))
     
-    return NextResponse.json(transformedOrders)
+    const response = NextResponse.json(transformedOrders)
+    // Add headers to prevent caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   } catch (error) {
     console.error('Error fetching orders:', error)
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })

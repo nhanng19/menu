@@ -1,6 +1,8 @@
 import { getDatabase } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const revalidate = 0; // Disable caching - always fetch fresh data
+
 export async function POST(request: NextRequest) {
   try {
     const db = await getDatabase();
@@ -61,7 +63,12 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
-    return NextResponse.json(reviews);
+    const response = NextResponse.json(reviews)
+    // Add headers to prevent caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   } catch (error) {
     console.error('Error fetching reviews:', error);
     return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
