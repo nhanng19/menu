@@ -144,6 +144,10 @@ export default function TablePage() {
       return
     }
 
+    // Play item-added sound
+    const audio = new Audio('/sounds/item-added.mp3')
+    audio.play().catch(err => console.log('Could not play sound:', err))
+
     const existingItem = cart.find((c: OrderItem) => c.id === item.id)
     if (existingItem) {
       setCart(cart.map((c: OrderItem) => 
@@ -199,7 +203,12 @@ export default function TablePage() {
         toast({
           variant: "success",
           title: "Order Submitted!",
-          description: "Your order has been sent to the kitchen. 🎉",
+          description: (
+            <div className="flex flex-col items-center gap-2">
+              <img src="https://media.tenor.com/8WbfUnK_A9sAAAAM/larry-larry-baby.gif" alt="celebration" className="w-32 h-32 rounded" />
+              <p>Your order has been sent to the kitchen. 🎉</p>
+            </div>
+          ),
         })
         setCart([])
         setShowCart(false)
@@ -332,7 +341,7 @@ export default function TablePage() {
                     <SheetHeader className="mb-6">
                       <SheetTitle>Write a Review</SheetTitle>
                       <SheetDescription>
-                        Share your dining experience with us
+                        How did we do?
                       </SheetDescription>
                     </SheetHeader>
 
