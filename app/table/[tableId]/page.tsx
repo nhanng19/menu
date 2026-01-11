@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,6 +60,7 @@ export default function TablePage() {
   }
 
   const { toast } = useToast()
+  const itemAddedAudioRef = useRef<HTMLAudioElement>(null)
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [cart, setCart] = useState<OrderItem[]>([])
@@ -82,6 +83,13 @@ export default function TablePage() {
   const SERVER_NAMES = ['Linh', 'Nhan', 'Ben', 'Tin', 'Samantha', 'Brandon', 'Corey']
 
   useEffect(() => {
+    // Preload audio file
+    const audio = new Audio('/sounds/item-added.mp3')
+    audio.preload = 'auto'
+    if (itemAddedAudioRef.current === null) {
+      (itemAddedAudioRef as any).current = audio
+    }
+
     // Fetch menu items
     const fetchMenu = async () => {
       try {
@@ -144,9 +152,11 @@ export default function TablePage() {
       return
     }
 
-    // Play item-added sound
-    const audio = new Audio('/sounds/item-added.mp3')
-    audio.play().catch(err => console.log('Could not play sound:', err))
+    // Play item-added sound (using preloaded audio)
+    if (itemAddedAudioRef.current) {
+      itemAddedAudioRef.current.currentTime = 0
+      itemAddedAudioRef.current.play().catch(err => console.log('Could not play sound:', err))
+    }
 
     const existingItem = cart.find((c: OrderItem) => c.id === item.id)
     if (existingItem) {
