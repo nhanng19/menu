@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,6 +60,7 @@ export default function TablePage() {
   }
 
   const { toast } = useToast()
+  const cartContentRef = useRef<HTMLDivElement>(null)
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [cart, setCart] = useState<OrderItem[]>([])
@@ -144,10 +145,6 @@ export default function TablePage() {
       return
     }
 
-    // Play item-added sound
-    const audio = new Audio('/sounds/item-added.mp3')
-    audio.play().catch(err => console.log('Could not play sound:', err))
-
     const existingItem = cart.find((c: OrderItem) => c.id === item.id)
     if (existingItem) {
       setCart(cart.map((c: OrderItem) => 
@@ -156,6 +153,16 @@ export default function TablePage() {
     } else {
       setCart([...cart, { id: item.id, name: item.name, quantity: 1, image: item.image }])
     }
+
+    // Open the cart on mobile, show on desktop
+    setShowCart(true)
+    
+    // Scroll cart to bottom to show new item
+    setTimeout(() => {
+      if (cartContentRef.current) {
+        cartContentRef.current.scrollTop = cartContentRef.current.scrollHeight
+      }
+    }, 0)
   }
 
   const removeFromCart = (itemId: string | number) => {
@@ -616,7 +623,7 @@ export default function TablePage() {
               View Cart ({totalItems} {totalItems === 1 ? 'item' : 'items'})
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" ref={cartContentRef}>
             <SheetHeader>
               <SheetTitle>Your Order</SheetTitle>
               <SheetDescription>
