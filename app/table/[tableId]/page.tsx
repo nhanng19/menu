@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getTableIdFromCode } from '@/lib/tableMapping'
+import Image from 'next/image'
 
 interface MenuItem {
   id: string | number
@@ -315,6 +316,13 @@ export default function TablePage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Header */}
         <div className="bg-background shadow-md sticky top-0 z-10 border-b">
+          <div className="w-full h-32 md:h-40 relative overflow-hidden">
+            <img
+              src="/images/pepperjackcheese.png"
+              alt="Header"
+              className="object-cover relative"
+            />
+          </div>
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
