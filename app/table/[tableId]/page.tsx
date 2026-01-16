@@ -318,7 +318,7 @@ export default function TablePage() {
         <div className="bg-background shadow-md sticky top-0 z-10 border-b">
           <div className="w-full h-32 md:h-40 relative overflow-hidden">
             <img
-              src="/images/pepperjackcheese.png"
+              src="/images/cats.gif"
               alt="Header"
               className="object-cover relative"
             />
