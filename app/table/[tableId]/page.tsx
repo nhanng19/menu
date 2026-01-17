@@ -131,21 +131,22 @@ export default function TablePage() {
     checkOrderStatus()
   }, [tableId, checkOrderStatus])
 
-  // Poll for cooldown status every 5 seconds
+  // Poll for cooldown status - reduced frequency to save connections
   useEffect(() => {
     // Check immediately on mount
     checkOrderStatus()
     
-    // Then poll every 5 seconds
-    const pollInterval = setInterval(checkOrderStatus, 5000)
+    // Poll every 15 seconds instead of 5 (reduces connections by 66%)
+    const pollInterval = setInterval(checkOrderStatus, 15000)
     return () => clearInterval(pollInterval)
   }, [checkOrderStatus])
 
-  // Also check when page becomes visible (user switches back to tab)
+  // Check when page becomes visible (user switches back to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        checkOrderStatus()
+        // Debounce: only check after 2 seconds of being visible
+        setTimeout(checkOrderStatus, 2000)
       }
     }
     
@@ -158,18 +159,19 @@ export default function TablePage() {
     fetchSpecialItemCounts()
   }, [tableId, fetchOrderHistory])
 
-  // Poll for order history updates every 10 seconds (to see when orders are completed)
+  // Poll for order history updates - reduced frequency
   useEffect(() => {
-    // Always poll to get updates (orders can be completed, new orders can be added)
-    const pollInterval = setInterval(fetchOrderHistory, 10000)
+    // Poll every 30 seconds instead of 10 (reduces connections by 66%)
+    const pollInterval = setInterval(fetchOrderHistory, 30000)
     return () => clearInterval(pollInterval)
   }, [fetchOrderHistory])
 
-  // Also refresh order history when page becomes visible
+  // Refresh order history when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchOrderHistory()
+        // Debounce: only check after 2 seconds of being visible
+        setTimeout(fetchOrderHistory, 2000)
       }
     }
     
@@ -448,7 +450,7 @@ export default function TablePage() {
         <div className="bg-background shadow-md sticky top-0 z-10 border-b">
           <div className="w-[60%] h-24 md:h-40 relative overflow-hidden m-auto">
             <img
-              src="/images/cats.gif"
+              src="/images/blinks.gif"
               alt="Header"
               className="object-cover relative"
             />

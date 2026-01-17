@@ -28,7 +28,8 @@ export default function KitchenPage() {
 
   useEffect(() => {
     fetchOrders()
-    const interval = setInterval(fetchOrders, 3000) // Poll every 3 seconds
+    // Reduced polling frequency from 3s to 10s to reduce connection usage
+    const interval = setInterval(fetchOrders, 10000)
     return () => clearInterval(interval)
   }, [])
 

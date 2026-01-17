@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getTableOrderHistory } from '@/lib/orders'
 
-export const revalidate = 0; // Disable caching - always fetch fresh data
+// Cache history for 10 seconds to reduce database queries
+export const revalidate = 10;
 
 export async function GET(
   request: Request,
@@ -26,10 +27,8 @@ export async function GET(
     }))
     
     const response = NextResponse.json(transformedOrders)
-    // Add headers to prevent caching
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
+    // Cache for 10 seconds to reduce connection usage
+    response.headers.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=20')
     return response
   } catch (error) {
     console.error('Error fetching order history:', error)

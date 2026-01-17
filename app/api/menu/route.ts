@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/mongodb'
 
-export const revalidate = 0; // Disable caching - always fetch fresh data
+// Menu items don't change often, so we can cache for 60 seconds
+export const revalidate = 60;
 
 export async function GET() {
   try {
@@ -19,10 +20,8 @@ export async function GET() {
     }))
     
     const response = NextResponse.json(transformedItems)
-    // Add headers to prevent caching
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
+    // Cache menu for 60 seconds to reduce database queries
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
     return response
   } catch (error) {
     console.error('Error fetching menu:', error)
