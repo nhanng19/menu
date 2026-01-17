@@ -446,7 +446,7 @@ export default function TablePage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Header */}
         <div className="bg-background shadow-md sticky top-0 z-10 border-b">
-          <div className="w-full h-32 md:h-40 relative overflow-hidden">
+          <div className="w-[60%] h-20 md:h-40 relative overflow-hidden m-auto">
             <img
               src="/images/cats.gif"
               alt="Header"
