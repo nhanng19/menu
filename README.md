@@ -6,7 +6,10 @@ A simple Next.js app for managing food orders at a Korean BBQ party.
 
 - **Guest Ordering**: Scan QR code to access table-specific ordering page
 - **Menu Management**: Hardcoded menu items
-- **Order Limits**: Maximum 10 items per order
+- **Order Limits**: 
+  - Maximum 4 meat items per order
+  - Unlimited drinks and sides
+  - Maximum 5 orders per special item (across all orders for a table)
 - **Cooldown**: 10-minute cooldown between orders per table
 - **Kitchen Dashboard**: View and manage incoming orders
 

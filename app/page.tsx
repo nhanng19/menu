@@ -35,7 +35,6 @@ export default function Home() {
           <div className="pt-4 border-t">
             <Button variant="outline" className="w-full" asChild>
               <Link href="/kitchen">
-                <ChefHat className="h-4 w-4 mr-2" />
                 Kitchen Dashboard
               </Link>
             </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +29,7 @@ interface OrderItem {
   name: string
   quantity: number
   image?: string
+  category?: string
 }
 
 interface OrderHistory {
@@ -71,8 +72,9 @@ export default function TablePage() {
   const [showCart, setShowCart] = useState(false)
   const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([])
   const [activeTab, setActiveTab] = useState('menu')
-  const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [activeCategory, setActiveCategory] = useState<string>('Meat')
   const [showReviewSheet, setShowReviewSheet] = useState(false)
+  const [specialItemCounts, setSpecialItemCounts] = useState<Record<string, number>>({})
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
   const [reviewData, setReviewData] = useState({
     customer_name: '',
@@ -82,6 +84,27 @@ export default function TablePage() {
   })
 
   const SERVER_NAMES = ['Linh', 'Nhan', 'Ben', 'Tin', 'Samantha', 'Brandon', 'Corey']
+
+  const checkOrderStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/table/${tableId}/status`)
+      const data = await res.json()
+      setCanOrder(data.canOrder)
+      setCooldownMinutes(data.cooldownMinutes)
+    } catch (error) {
+      console.error('Error checking order status:', error)
+    }
+  }, [tableId])
+
+  const fetchOrderHistory = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/table/${tableId}/history`)
+      const data = await res.json()
+      setOrderHistory(data)
+    } catch (error) {
+      console.error('Error fetching order history:', error)
+    }
+  }, [tableId])
 
   useEffect(() => {
     // Fetch menu items
@@ -106,45 +129,104 @@ export default function TablePage() {
     
     // Check order status on page load
     checkOrderStatus()
-  }, [tableId])
+  }, [tableId, checkOrderStatus])
 
-  // Poll for cooldown status every 10 seconds
+  // Poll for cooldown status every 5 seconds
   useEffect(() => {
-    const pollInterval = setInterval(checkOrderStatus, 10000)
+    // Check immediately on mount
+    checkOrderStatus()
+    
+    // Then poll every 5 seconds
+    const pollInterval = setInterval(checkOrderStatus, 5000)
     return () => clearInterval(pollInterval)
-  }, [tableId])
+  }, [checkOrderStatus])
+
+  // Also check when page becomes visible (user switches back to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkOrderStatus()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [checkOrderStatus])
 
   useEffect(() => {
     fetchOrderHistory()
-  }, [tableId])
+    fetchSpecialItemCounts()
+  }, [tableId, fetchOrderHistory])
 
-  const fetchOrderHistory = async () => {
+  // Poll for order history updates every 10 seconds (to see when orders are completed)
+  useEffect(() => {
+    // Always poll to get updates (orders can be completed, new orders can be added)
+    const pollInterval = setInterval(fetchOrderHistory, 10000)
+    return () => clearInterval(pollInterval)
+  }, [fetchOrderHistory])
+
+  // Also refresh order history when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrderHistory()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [fetchOrderHistory])
+
+  const fetchSpecialItemCounts = async () => {
     try {
-      const res = await fetch(`/api/table/${tableId}/history`)
+      const res = await fetch(`/api/table/${tableId}/special-counts`)
       const data = await res.json()
-      setOrderHistory(data)
+      setSpecialItemCounts(data.counts || {})
     } catch (error) {
-      console.error('Error fetching order history:', error)
+      console.error('Error fetching special item counts:', error)
+      setSpecialItemCounts({})
     }
   }
 
-  const checkOrderStatus = async () => {
-    const res = await fetch(`/api/table/${tableId}/status`)
-    const data = await res.json()
-    setCanOrder(data.canOrder)
-    setCooldownMinutes(data.cooldownMinutes)
-  }
-
-  const addToCart = (item: MenuItem) => {
-    const currentTotal = cart.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0)
-    if (currentTotal >= 10) {
-      toast({
-        variant: "default",
-        title: "Maximum Items Reached",
-        description: "You can only add up to 10 items per order.",
-      })
-      return
+  const addToCart = async (item: MenuItem) => {
+    const itemCategory = item.category || ''
+    
+    // Check meat limit (max 4 meat items per order)
+    if (itemCategory === 'Meat') {
+      const currentMeatCount = cart
+        .filter((c: OrderItem) => c.category === 'Meat')
+        .reduce((sum: number, c: OrderItem) => sum + c.quantity, 0)
+      
+      if (currentMeatCount >= 4) {
+        toast({
+          variant: "default",
+          title: "Maximum Meat Items Reached",
+          description: "You can only add up to 4 meat items per order.",
+        })
+        return
+      }
     }
+
+    // Check special item limit (max 5 per item across all orders for this table)
+    if (itemCategory === 'Special') {
+      const currentCountInCart = cart
+        .filter((c: OrderItem) => c.id === item.id)
+        .reduce((sum: number, c: OrderItem) => sum + c.quantity, 0)
+      
+      const totalCountForItem = (specialItemCounts[String(item.id)] || 0) + currentCountInCart
+      
+      if (totalCountForItem >= 5) {
+        toast({
+          variant: "default",
+          title: "Maximum Special Item Reached",
+          description: `You can only order ${item.name} up to 5 times total for this table.`,
+        })
+        return
+      }
+    }
+
+    // Drinks and Sides have no limits
+    // No total item limit anymore
 
     const existingItem = cart.find((c: OrderItem) => c.id === item.id)
     if (existingItem) {
@@ -152,7 +234,13 @@ export default function TablePage() {
         c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
       ))
     } else {
-      setCart([...cart, { id: item.id, name: item.name, quantity: 1, image: item.image }])
+      setCart([...cart, { 
+        id: item.id, 
+        name: item.name, 
+        quantity: 1, 
+        image: item.image,
+        category: item.category
+      }])
     }
 
     // Open the cart on mobile, show on desktop
@@ -170,14 +258,54 @@ export default function TablePage() {
     setCart(cart.filter((c: OrderItem) => c.id !== itemId))
   }
 
-  const updateQuantity = (itemId: string | number, quantity: number) => {
+  const updateQuantity = (itemId: string | number, quantity: number, itemCategory?: string) => {
     if (quantity <= 0) {
       removeFromCart(itemId)
-    } else {
-      setCart(cart.map((c: OrderItem) => 
-        c.id === itemId ? { ...c, quantity } : c
-      ))
+      return
     }
+
+    const currentItem = cart.find((c: OrderItem) => c.id === itemId)
+    if (!currentItem) return
+
+    // Check meat limit when setting new quantity
+    if (itemCategory === 'Meat') {
+      const otherMeatCount = cart
+        .filter((c: OrderItem) => c.category === 'Meat' && c.id !== itemId)
+        .reduce((sum: number, c: OrderItem) => sum + c.quantity, 0)
+      
+      const newTotalMeatCount = otherMeatCount + quantity
+      if (newTotalMeatCount > 4) {
+        toast({
+          variant: "default",
+          title: "Maximum Meats Reached",
+          description: "You can only add up to 4 meats per order.",
+        })
+        return
+      }
+    }
+
+    // Check special item limit when setting new quantity
+    if (itemCategory === 'Special') {
+      const otherItemsOfSameType = cart
+        .filter((c: OrderItem) => c.id === itemId)
+        .reduce((sum: number, c: OrderItem) => sum + c.quantity, 0)
+      
+      const otherItemsCount = otherItemsOfSameType - currentItem.quantity
+      const totalCountForItem = (specialItemCounts[String(itemId)] || 0) + otherItemsCount + quantity
+      
+      if (totalCountForItem > 5) {
+        toast({
+          variant: "default",
+          title: "Maximum Special Item Reached",
+          description: `You can only order ${currentItem.name} up to 5 times total for this table.`,
+        })
+        return
+      }
+    }
+
+    setCart(cart.map((c: OrderItem) => 
+      c.id === itemId ? { ...c, quantity } : c
+    ))
   }
 
   const handleSubmit = async () => {
@@ -225,6 +353,7 @@ export default function TablePage() {
         setCart([])
         setShowCart(false)
         fetchOrderHistory()
+        fetchSpecialItemCounts()
         setTimeout(() => {
           checkOrderStatus()
         }, 1000)
@@ -294,6 +423,9 @@ export default function TablePage() {
   }
 
   const totalItems = cart.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0)
+  const meatItemsCount = cart
+    .filter((item: OrderItem) => item.category === 'Meat')
+    .reduce((sum: number, item: OrderItem) => sum + item.quantity, 0)
   const groupedMenu = Array.isArray(menuItems) 
     ? menuItems.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
         if (!acc[item.category || 'Other']) {
@@ -305,9 +437,7 @@ export default function TablePage() {
     : {}
 
   // Get categories for tabs - filter menu based on selected category
-  const filteredMenu = activeCategory === 'all' 
-    ? groupedMenu 
-    : activeCategory === 'Sides'
+  const filteredMenu = activeCategory === 'Sides'
     ? { 'Side': groupedMenu['Side'] || [] }  // Map "Sides" tab to "Side" category in DB
     : { [activeCategory]: groupedMenu[activeCategory] || [] }
 
@@ -327,9 +457,9 @@ export default function TablePage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold">Table {tableId}</h1>
-                <p className="text-sm text-muted-foreground mt-1">Select up to 10 items</p>
+                <p className="text-sm text-muted-foreground mt-1">Max 4 meats per order</p>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {totalItems} / 10 items in cart
+                  {meatItemsCount} / 4 meat • {totalItems} total items
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -370,7 +500,7 @@ export default function TablePage() {
                           Your Name *
                         </label>
                         <Input
-                          placeholder="e.g., John Doe"
+                          placeholder="e.g., John Doe or Anonymous"
                           value={reviewData.customer_name}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                             setReviewData({
@@ -434,7 +564,7 @@ export default function TablePage() {
                           Comments
                         </label>
                         <Textarea
-                          placeholder="Tell us about your experience..."
+                          placeholder="Snitch or compliment your server!"
                           value={reviewData.comment}
                           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                             setReviewData({
@@ -483,10 +613,10 @@ export default function TablePage() {
           <div className="mb-4">
             <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
               <TabsList className="w-full grid grid-cols-5 h-auto p-1">
-                <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
                 <TabsTrigger value="Meat" className="text-xs sm:text-sm">Meat</TabsTrigger>
+                <TabsTrigger value="Special" className="text-xs sm:text-sm">Special</TabsTrigger>
                 <TabsTrigger value="Seafood" className="text-xs sm:text-sm">Seafood</TabsTrigger>
-                <TabsTrigger value="Side" className="text-xs sm:text-sm">Sides</TabsTrigger>
+                <TabsTrigger value="Sides" className="text-xs sm:text-sm">Sides</TabsTrigger>
                 <TabsTrigger value="Drinks" className="text-xs sm:text-sm">Drinks</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -538,7 +668,7 @@ export default function TablePage() {
                         </div>
                         <Button
                           onClick={() => addToCart(item)}
-                          disabled={!canOrder || totalItems >= 10}
+                          disabled={!canOrder}
                           size="sm"
                         >
                           <Plus className="h-4 w-4" />
@@ -559,7 +689,7 @@ export default function TablePage() {
             <Card>
               <CardContent className="p-8 text-center">
                 <p className="text-muted-foreground text-lg">No orders yet</p>
-                <p className="text-muted-foreground text-sm mt-2">Your order history will appear here</p>
+                <p className="text-muted-foreground text-sm mt-2">(Order something)</p>
               </CardContent>
             </Card>
           ) : (
@@ -635,7 +765,7 @@ export default function TablePage() {
             <SheetHeader>
               <SheetTitle>Your Order</SheetTitle>
               <SheetDescription>
-                {totalItems} / 10 items
+                {meatItemsCount} / 4 meat items • {totalItems} total items
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6 space-y-3">
@@ -683,8 +813,7 @@ export default function TablePage() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={totalItems >= 10}
+                              onClick={() => updateQuantity(item.id, item.quantity + 1, item.category)}
                               className="h-10 w-10"
                             >
                               <Plus className="h-4 w-4" />
@@ -714,7 +843,7 @@ export default function TablePage() {
         <div className="p-6 sticky top-0 bg-background border-b">
           <h2 className="text-2xl font-bold mb-2">Your Order</h2>
           <p className="text-sm text-muted-foreground">
-            {totalItems} / 10 items
+            {meatItemsCount} / 4 meat items • {totalItems} total items
           </p>
         </div>
         <div className="p-6">
@@ -761,8 +890,7 @@ export default function TablePage() {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={totalItems >= 10}
+                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.category)}
                             className="h-8 w-8"
                           >
                             <Plus className="h-3 w-3" />

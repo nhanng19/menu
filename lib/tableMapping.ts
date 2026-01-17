@@ -11,6 +11,7 @@ export const tableMapping: Record<string, number> = {
   '3e7a9b2f-5c4d-4f8a-9e1b-7c6f2d5a3e8b': 4,
   'f5b8d1e9-3a6c-4b7f-2e9d-8a5c1f6b4e7a': 5,
   '2c6e9f3b-7d1a-4e8c-5b9f-1a4d7c2e6f8b': 6,
+  '9e3f7a2b-4c8d-4f1a-6b9e-3d7c2a5f8e1b': 7,
 };
 
 /**

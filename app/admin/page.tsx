@@ -211,9 +211,10 @@ export default function AdminPage() {
         {/* Category Tabs */}
         <div className="mb-4">
           <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-            <TabsList className="w-full grid grid-cols-5 h-auto p-1">
+            <TabsList className="w-full grid grid-cols-6 h-auto p-1">
               <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
               <TabsTrigger value="Meat" className="text-xs sm:text-sm">Meat</TabsTrigger>
+              <TabsTrigger value="Special" className="text-xs sm:text-sm">Special</TabsTrigger>
               <TabsTrigger value="Seafood" className="text-xs sm:text-sm">Seafood</TabsTrigger>
               <TabsTrigger value="Side" className="text-xs sm:text-sm">Sides</TabsTrigger>
               <TabsTrigger value="Drinks" className="text-xs sm:text-sm">Drinks</TabsTrigger>
@@ -329,7 +330,7 @@ export default function AdminPage() {
                 Category
               </label>
               <Input
-                placeholder="e.g., Meat, Seafood, Side"
+                placeholder="e.g., Meat, Special, Seafood, Side, Drinks"
                 value={formData.category}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData({ ...formData, category: e.target.value })
