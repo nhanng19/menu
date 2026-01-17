@@ -447,13 +447,16 @@ export default function TablePage() {
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 pb-24 md:pb-4  md:pr-80">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Header */}
-        <div className="bg-background shadow-md sticky top-0 z-10 border-b">
+        <div className="bg-background shadow-md sticky top-0 z-10 border-b ">
+          <div className='background-gif'>
           <div className="w-[60%] h-24 md:h-40 relative overflow-hidden m-auto">
             <img
               src="/images/blinks.gif"
               alt="Header"
               className="object-cover relative"
             />
+          </div>
+
           </div>
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
