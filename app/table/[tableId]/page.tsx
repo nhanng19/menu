@@ -137,7 +137,7 @@ export default function TablePage() {
     checkOrderStatus()
     
     // Poll every 15 seconds instead of 5 (reduces connections by 66%)
-    const pollInterval = setInterval(checkOrderStatus, 15000)
+    const pollInterval = setInterval(checkOrderStatus, 7500)
     return () => clearInterval(pollInterval)
   }, [checkOrderStatus])
 
@@ -162,7 +162,7 @@ export default function TablePage() {
   // Poll for order history updates - reduced frequency
   useEffect(() => {
     // Poll every 30 seconds instead of 10 (reduces connections by 66%)
-    const pollInterval = setInterval(fetchOrderHistory, 30000)
+    const pollInterval = setInterval(fetchOrderHistory, 10000)
     return () => clearInterval(pollInterval)
   }, [fetchOrderHistory])
 
