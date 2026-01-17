@@ -200,7 +200,7 @@ export default function TablePage() {
       if (currentMeatCount >= 4) {
         toast({
           variant: "default",
-          title: "Maximum Meat Items Reached",
+          title: "Maximum Meats Reached",
           description: "You can only add up to 4 meat items per order.",
         })
         return
@@ -446,7 +446,7 @@ export default function TablePage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Header */}
         <div className="bg-background shadow-md sticky top-0 z-10 border-b">
-          <div className="w-[60%] h-20 md:h-40 relative overflow-hidden m-auto">
+          <div className="w-[60%] h-24 md:h-40 relative overflow-hidden m-auto">
             <img
               src="/images/cats.gif"
               alt="Header"
@@ -642,7 +642,7 @@ export default function TablePage() {
                   <CardContent className="p-0 divide-y">
                     {categoryItems.map((item: MenuItem) => (
                     <div key={item.id} className="p-4 active:bg-muted/50 transition-colors">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center justify-between gap-3">
                         {item.image && (
                           <div className="flex-shrink-0">
                             <img
@@ -670,6 +670,7 @@ export default function TablePage() {
                           onClick={() => addToCart(item)}
                           disabled={!canOrder}
                           size="sm"
+                          className="self-center"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -757,7 +758,7 @@ export default function TablePage() {
               size="lg"
               className="fixed bottom-4 left-4 right-4 md:hidden z-20 shadow-lg bg-red-600 hover:bg-red-700 text-white h-16 text-lg font-semibold"
             >
-              <ShoppingCart className="h-5 w-5 mr-2" />
+              <ShoppingCart width={30} height={30} className="mr-2" />
               View Cart ({totalItems} {totalItems === 1 ? 'item' : 'items'})
             </Button>
           </SheetTrigger>
